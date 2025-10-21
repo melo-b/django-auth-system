@@ -3,8 +3,10 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.exceptions import ValidationError
-from django.contrib.auth import login, get_user_model
+from django.contrib.auth import login, logout, get_user_model
 from django.db import IntegrityError
+from django.http import HttpResponseRedirect
+from django.urls import reverse
 import logging
 from .forms import RegisterForm
 
@@ -48,3 +50,30 @@ def dashboard(request):
         logger.error(f"Error accessing dashboard for user {request.user.username}: {e}")
         messages.error(request, 'An error occurred while loading the dashboard.')
         return redirect('login')
+
+def logout_confirm(request):
+    """Logout confirmation view"""
+    if not request.user.is_authenticated:
+        messages.info(request, 'You are not logged in.')
+        return HttpResponseRedirect(reverse('login'))
+    
+    return render(request, 'registration/logout_confirm.html')
+
+def custom_logout(request):
+    """Custom logout view with error handling and logging"""
+    try:
+        if request.user.is_authenticated:
+            username = request.user.username
+            logger.info(f"User {username} is logging out")
+            logout(request)
+            messages.success(request, 'You have been successfully logged out.')
+            logger.info(f"User {username} logged out successfully")
+        else:
+            logger.warning("Logout attempted by unauthenticated user")
+            messages.info(request, 'You were not logged in.')
+        
+        return HttpResponseRedirect(reverse('login'))
+    except Exception as e:
+        logger.error(f"Error during logout: {e}")
+        messages.error(request, 'An error occurred during logout.')
+        return HttpResponseRedirect(reverse('login'))

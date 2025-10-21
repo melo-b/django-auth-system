@@ -86,7 +86,7 @@ class AuthenticationTestCase(TestCase):
         self.client.login(username='existing@example.com', password='testpass123')
         response = self.client.get(reverse('dashboard'))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Welcome, existinguser!')
+        self.assertContains(response, 'Welcome, Existing User!')
 
     def test_logout_view(self):
         """Test logout functionality"""
@@ -94,6 +94,46 @@ class AuthenticationTestCase(TestCase):
         response = self.client.post(reverse('logout'))
         self.assertEqual(response.status_code, 302)
         self.assertTrue(response.url.endswith('/login/'))
+
+    def test_logout_authenticated_user(self):
+        """Test logout for authenticated user"""
+        self.client.login(username='existing@example.com', password='testpass123')
+        response = self.client.post(reverse('logout'))
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response.url.endswith('/login/'))
+        
+        # Check that user is logged out
+        response = self.client.get(reverse('dashboard'))
+        self.assertEqual(response.status_code, 302)  # Should redirect to login
+
+    def test_logout_unauthenticated_user(self):
+        """Test logout for unauthenticated user"""
+        response = self.client.post(reverse('logout'))
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response.url.endswith('/login/'))
+
+    def test_logout_redirects_to_login(self):
+        """Test that logout redirects to login page"""
+        self.client.login(username='existing@example.com', password='testpass123')
+        response = self.client.post(reverse('logout'))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/login/', response.url)
+
+    def test_logout_clears_session(self):
+        """Test that logout clears user session"""
+        self.client.login(username='existing@example.com', password='testpass123')
+        
+        # Verify user is logged in
+        response = self.client.get(reverse('dashboard'))
+        self.assertEqual(response.status_code, 200)
+        
+        # Logout
+        response = self.client.post(reverse('logout'))
+        self.assertEqual(response.status_code, 302)
+        
+        # Verify user is logged out
+        response = self.client.get(reverse('dashboard'))
+        self.assertEqual(response.status_code, 302)  # Should redirect to login
 
 
 class RegisterFormTestCase(TestCase):
